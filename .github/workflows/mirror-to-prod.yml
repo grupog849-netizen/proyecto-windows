@@ -2,7 +2,7 @@ name: Mirror DEV -> PROD
 
 on:
   push:
-    branches: [ "main", "principal" ]
+    branches: [ main, principal ]
   workflow_dispatch:
 
 permissions:
@@ -11,15 +11,14 @@ permissions:
 jobs:
   mirror:
     runs-on: windows-latest
-
     steps:
-      - name: Checkout DEV (no bot credentials)
+      - name: Checkout DEV (no bot creds)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Clean bot credentials (if any)
+      - name: Clean bot creds (if any)
         run: |
           git config --global --unset-all http.https://github.com/.extraheader || echo "No creds"
           git config --global credential.helper "" || echo "No helper"
@@ -29,17 +28,17 @@ jobs:
           git config user.name "${{ secrets.PROD_GRUPO3 }}"
           git config user.email "ci-bot@users.noreply.github.com"
 
-      - name: Add production remote
+      - name: Add PROD remote with PAT
         run: |
-          git remote remove prod || echo "No remote yet"
-          git remote add prod "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@${{ secrets.PROD_REPO#https:// }}"
+          git remote remove prod || echo "No remote"
+          git remote add prod "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows-prod.git"
           git remote -v
           git ls-remote prod
 
-      - name: Push branches mirror (force + prune)
+      - name: Mirror branches (force + prune)
         run: |
           git push --force --prune prod "+refs/heads/*:refs/heads/*"
 
-      - name: Push tags mirror (force + prune)
+      - name: Mirror tags (force + prune)
         run: |
           git push --force --prune --tags prod
