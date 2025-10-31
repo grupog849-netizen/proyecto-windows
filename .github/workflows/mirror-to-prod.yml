@@ -1,0 +1,45 @@
+name: Mirror DEV -> PROD
+
+on:
+  push:
+    branches: [ "main", "principal" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout DEV (no bot credentials)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Clean bot credentials (if any)
+        run: |
+          git config --global --unset-all http.https://github.com/.extraheader || echo "No creds"
+          git config --global credential.helper "" || echo "No helper"
+
+      - name: Configure Git
+        run: |
+          git config user.name "${{ secrets.PROD_GRUPO3 }}"
+          git config user.email "ci-bot@users.noreply.github.com"
+
+      - name: Add production remote
+        run: |
+          git remote remove prod || echo "No remote yet"
+          git remote add prod "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@${{ secrets.PROD_REPO#https:// }}"
+          git remote -v
+          git ls-remote prod
+
+      - name: Push branches mirror (force + prune)
+        run: |
+          git push --force --prune prod "+refs/heads/*:refs/heads/*"
+
+      - name: Push tags mirror (force + prune)
+        run: |
+          git push --force --prune --tags prod
