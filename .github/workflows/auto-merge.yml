@@ -1,0 +1,48 @@
+name: Auto Merge Branches
+
+on:
+  push:
+    branches:
+      - dev-app
+      - dev-db
+  schedule:
+    - cron: "0 * * * *" # cada hora, puedes cambiarlo a diario o semanal
+
+jobs:
+  merge-to-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configurar Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge desarrollo → staging
+        run: |
+          git fetch origin
+          git checkout staging
+          git merge origin/dev-app --no-edit || true
+          git merge origin/dev-db --no-edit || true
+          git push origin staging
+
+  merge-to-main:
+    needs: merge-to-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configurar Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge staging → main
+        run: |
+          git fetch origin
+          git checkout main
+          git merge origin/staging --no-edit || true
+          git push origin main
