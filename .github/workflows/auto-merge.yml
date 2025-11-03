@@ -2,7 +2,7 @@ name: Auto Merge Branches
 
 on:
   push:
-    branches: [ dev-app ]
+
   workflow_dispatch:
 
 jobs:
@@ -28,8 +28,7 @@ jobs:
       - name: Merge dev-app -> staging (no falla si ya está al día)
         run: |
           git checkout staging
-          git merge --no-ff --no-edit origin/dev-app || true
-          git push origin staging || true
+
 
   pr-staging-to-main:
     needs: merge-to-staging
@@ -41,8 +40,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Crear/actualizar PR staging -> main
-        id: cpr
+
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
