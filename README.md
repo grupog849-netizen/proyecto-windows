@@ -1,3 +1,1 @@
-
-PRUEBA CI dev-app -> staging -> main
-cero estres
+Auto Merge APP Branches.
