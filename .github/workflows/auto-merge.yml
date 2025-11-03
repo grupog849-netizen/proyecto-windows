@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dev-app
+      - staging
   workflow_dispatch:
 
 jobs:
@@ -16,49 +17,59 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Configurar Git
+      - name: Config Git
         run: |
           git config user.name "${{ secrets.PROD_GRUPO3 }}"
           git config user.email "ci-bot@users.noreply.github.com"
 
-      - name: Reconfigurar origin con PAT
+      - name: Reconfigurar origin con PAT (push con permisos)
         run: |
           git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
           git fetch origin --prune
 
-      - name: Merge dev-app -> staging
+      - name: Merge dev-app -> staging (idempotente)
         run: |
           git checkout staging
-          git merge --no-ff --no-edit origin/dev-app || exit 0
-          git push origin staging
+          git merge --no-ff --no-edit origin/dev-app || true
+          git push origin HEAD:staging
 
-  merge-staging-to-main:
+  pr-staging-to-main:
     needs: merge-to-staging
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout (no bot creds)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
-
-      - name: Configurar Git
-        run: |
-          git config user.name "${{ secrets.PROD_GRUPO3 }}"
-          git config user.email "ci-bot@users.noreply.github.com"
-
-      - name: Reconfigurar origin con PAT
-        run: |
-          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
-          git fetch origin --prune
 
       - name: Crear PR staging -> main
+        id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.PROD_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: sync staging -> main"
           title: "Auto-PR: staging → main"
           body: "PR automático generado por workflow."
-          base: main
+          base: main                   # rama de destino
+          head: ci/auto-pr-staging-to-main
           branch: ci/auto-pr-staging-to-main
           delete-branch: true
+          draft: false
+
+      - name: Aprobar PR (si se requiere)
+        if: steps.cpr.outputs.pull-request-number != ''
+        uses: juliangruber/approve-pull-request-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          number: ${{ steps.cpr.outputs.pull-request-number }}
+
+      - name: Enable auto-merge (squash)
+        if: steps.cpr.outputs.pull-request-number != ''
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: squash
