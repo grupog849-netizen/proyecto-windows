@@ -27,9 +27,7 @@ jobs:
 
       - name: Set remote with PAT
         run: |
-          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
-          git fetch origin --prune
-
+         git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
       - name: Merge dev-app → staging
         run: |
           git checkout -B staging origin/staging
