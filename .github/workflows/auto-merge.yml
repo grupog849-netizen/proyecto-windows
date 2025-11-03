@@ -1,0 +1,56 @@
+name: Auto Merge Branches
+
+on:
+  push:
+    branches:
+      - dev-app
+      - dev-db
+      - staging
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge-to-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (no bot creds)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Config Git
+        run: |
+          git config user.name "${{ secrets.PROD_GRUPO3 }}"
+          git config user.email "ci-bot@users.noreply.github.com"
+
+      - name: Reconfigurar origin con PAT (push con permisos)
+        run: |
+          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
+          git fetch origin --prune
+
+      # 1) Trae siempre lo último de MAIN a STAGING para minimizar conflictos
+      - name: Update staging with latest main
+        run: |
+          git checkout staging
+          git merge -X theirs --no-ff --no-edit origin/main || true
+          git push origin staging
+
+      # 2) Si el push viene de dev-app, integra dev-app -> staging
+      - name: Merge dev-app -> staging
+        if: github.ref == 'refs/heads/dev-app'
+        run: |
+          git checkout staging
+          git merge -X theirs --no-ff --no-edit origin/dev-app || true
+          git push origin staging
+
+      # 3) Si el push viene de dev-db, integra dev-db -> staging
+      - name: Merge dev-db -> staging
+        if: github.ref == 'refs/heads/dev-db'
+        run: |
+          git checkout staging
+          git merge -X theirs --no-ff --no-edit origin/dev-db || true
+          git push origin staging
