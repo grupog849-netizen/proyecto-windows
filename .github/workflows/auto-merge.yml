@@ -29,7 +29,7 @@ jobs:
 
       - name: Reconfigurar origin con PAT (push con permisos)
         run: |
-          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-ubuntu.git"
+          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
           git fetch origin --prune
 
       # 1) Trae siempre lo último de MAIN a STAGING para minimizar conflictos
