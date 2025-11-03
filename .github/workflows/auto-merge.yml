@@ -76,3 +76,24 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
           merge-method: squash
+        pr-staging-to-main:
+          needs: merge-to-staging
+          runs-on: ubuntu-latest
+          steps:
+            - name: Checkout (no bot creds)
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                persist-credentials: false
+      
+            - name: Reconfigurar origin con PAT
+              run: |
+                git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
+                git fetch origin --prune
+      
+            # 🔧 Nuevo: trae lo último de main a staging para minimizar conflictos
+            - name: Update staging with latest main
+              run: |
+                git checkout staging
+                git merge --no-ff --no-edit origin/main || true
+                git push origin staging
