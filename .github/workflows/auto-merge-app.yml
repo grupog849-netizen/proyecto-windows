@@ -1,4 +1,4 @@
-name: Auto Merge APP Branches (Ubuntu)
+name: Auto Merge APP Branches
 
 on:
   push:
@@ -6,9 +6,9 @@ on:
       - dev-app
   workflow_dispatch:
 
-# Evita empujes simultáneos a 'staging' (APP/DB se turnan)
+# Candado: evita empujes simultáneos a 'staging'
 concurrency:
-  group: proyecto-ubuntu-staging-push
+  group: proyecto-windows-staging-push
   cancel-in-progress: false
 
 permissions:
@@ -32,7 +32,7 @@ jobs:
 
       - name: Set remote with PAT + fetch
         run: |
-          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-ubuntu.git"
+          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
           git fetch origin --prune
 
       - name: Merge dev-app → staging (rebase + retry)
@@ -40,6 +40,8 @@ jobs:
           set -e
           git checkout -B staging origin/staging
           git merge --no-ff --no-edit origin/dev-app || true
+
+          # Rebase contra el remoto y reintenta el push (hasta 3 veces)
           for i in 1 2 3; do
             git fetch origin
             git rebase origin/staging || true
@@ -63,7 +65,7 @@ jobs:
 
       - name: Set remote with PAT + fetch
         run: |
-          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-ubuntu.git"
+          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
           git fetch origin --prune
 
       - name: Create PR staging → main (APP)
@@ -72,10 +74,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: "Auto-PR (APP): staging → main"
-          body: "Cambios automáticos del módulo APP (Ubuntu)"
+          body: "Cambios automáticos del módulo APP"
           commit-message: "chore(APP): sync staging → main"
           base: main
-          branch: ci/auto-pr-ubuntu-app-staging-to-main
+          branch: ci/auto-pr-app-staging-to-main
           delete-branch: true
           draft: false
 
