@@ -1,1 +1,1 @@
-prueba db 
+independiente
