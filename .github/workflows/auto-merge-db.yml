@@ -6,6 +6,10 @@ on:
       - dev-db
   workflow_dispatch:
 
+concurrency:
+  group: proyecto-windows-staging-push
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -25,16 +29,27 @@ jobs:
           git config user.name "${{ secrets.PROD_GRUPO3 }}"
           git config user.email "ci-bot@users.noreply.github.com"
 
-      - name: Set remote with PAT
+      - name: Set remote with PAT + fetch
         run: |
-          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-ubuntu.git"
+          git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
           git fetch origin --prune
 
-      - name: Merge dev-db → staging
+      - name: Merge dev-db → staging (rebase + retry)
         run: |
+          set -e
           git checkout -B staging origin/staging
-          git merge -X theirs --no-ff --no-edit origin/dev-db || true
-          git push origin HEAD:staging
+          git merge --no-ff --no-edit origin/dev-db || true
+
+          for i in 1 2 3; do
+            git fetch origin
+            git rebase origin/staging || true
+            if git push origin HEAD:staging; then
+              echo "Push a staging OK"
+              break
+            fi
+            echo "Remote avanzó; reintento $i..."
+            sleep 3
+          done
 
   pr-staging-to-main:
     needs: merge-db-to-staging
@@ -46,7 +61,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set remote with PAT
+      - name: Set remote with PAT + fetch
         run: |
           git remote set-url origin "https://${{ secrets.PROD_GRUPO3 }}:${{ secrets.PROD_PAT }}@github.com/grupog849-netizen/proyecto-windows.git"
           git fetch origin --prune
@@ -57,7 +72,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: "Auto-PR (DB): staging → main"
-          body: "Cambios automáticos del módulo Base de Datos"
+          body: "Cambios automáticos del módulo DB"
           commit-message: "chore(DB): sync staging → main"
           base: main
           branch: ci/auto-pr-db-staging-to-main
